@@ -14,5 +14,6 @@ keywords = ["server", "api", "images"]
 categories = ["web"]
 
 [dependencies]
+rocket = "0.4.2"
 
 [dev-dependencies]
