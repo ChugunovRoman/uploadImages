@@ -1,0 +1,18 @@
+[package]
+name = "upload_images"
+version = "0.1.0"
+authors = ["Chugunov Roman <Zebs-BMK@yandex.ru>"]
+edition = "2018"
+license = "MIT"
+readme = "README.md"
+description = "Server for upload images"
+homepage = "https://github.com/ChugunovRoman/upload_images"
+repository = "https://github.com/ChugunovRoman/upload_images"
+documentation = "https://docs.rs/upload_images/"
+
+keywords = ["server", "api", "images"]
+categories = ["web"]
+
+[dependencies]
+
+[dev-dependencies]
