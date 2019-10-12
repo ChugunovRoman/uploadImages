@@ -3,11 +3,16 @@
 #[macro_use]
 extern crate rocket;
 
-use rocket::Request;
+use rocket::{Data, Request};
+use std::{env, io};
 
-#[get("/")]
-fn index() -> &'static str {
-  "Hello Rocket!"
+#[post("/api/v1/images/upload", format = "plain", data = "<data>")]
+fn index(data: Data) -> io::Result<String> {
+  let path = env::temp_dir().join("uploaded_file");
+
+  data.stream_to_file(&path)?;
+
+  Ok("Ok".to_string())
 }
 
 #[catch(404)]
