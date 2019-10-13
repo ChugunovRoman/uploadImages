@@ -9,7 +9,9 @@ use log::info;
 use multipart::server::{Multipart, MultipartField};
 use reqwest::header::HeaderMap;
 use rocket::data::{self, FromDataSimple};
-use rocket::{Data, Request};
+use rocket::http::Status;
+use rocket::{Data, Outcome::*, Request};
+use serde_json;
 
 use super::utils;
 
@@ -28,49 +30,30 @@ pub struct DataImages {
 }
 
 impl FromDataSimple for DataImages {
-  type Error = ();
+  type Error = String;
 
   fn from_data(request: &Request, data: Data) -> data::Outcome<Self, Self::Error> {
+    let mut files: Vec<Image> = Vec::new();
     let ct = request
       .headers()
       .get_one("Content-Type")
       .expect("The Content-Type header doesn't exists");
-    let idx = ct.find("boundary=").expect("The boundary not found");
-    let boundary = &ct[(idx + "boundary=".len())..];
-    let mut d = Vec::new();
 
-    data.stream_to(&mut d).expect("Unable to read");
-
-    let mut mp = Multipart::with_body(Cursor::new(d), boundary);
-    let mut files: Vec<Image> = Vec::new();
-
-    mp.foreach_entry(|mut entry| {
-      let mut image = Image {
-        name: "unknow_filename".to_string(),
-        buffer: vec![],
+    if ct.starts_with("multipart/form-data") {
+      // parse form data with binary, URI or base64 data
+      files = Self::parse_multipart(ct, data);
+    } else if ct.starts_with("application/json") {
+      // parse JSON
+      match Self::parse_json(data) {
+        Ok(images) => files = images,
+        Err(err) => {
+          return Failure((Status::raw(400), format!("{:?}", err)));
+        }
       };
-
-      if entry.is_text() {
-        Self::parse_text_entry(&mut entry);
-      }
-
-      if let Some(filename) = entry.headers.filename {
-        if let Some(ext) = Path::new(&filename).extension() {
-          let name = utils::generate_filename(String::from(ext.to_str().unwrap()));
-
-          image.name = name;
-        } else {
-          image.name = filename;
-        }
-      }
-      if let Some(content_type) = entry.headers.content_type {
-        if content_type.to_string().starts_with("image/") {
-          entry.data.read_to_end(&mut image.buffer);
-        }
-      }
-
-      files.push(image);
-    });
+    } else if ct.starts_with("text/plain") {
+      // parse binary, URI or base64
+      files = Self::parse_multipart(ct, data);
+    }
 
     data::Outcome::Success(DataImages { files })
   }
@@ -164,5 +147,74 @@ impl DataImages {
         Err(err) => return Err(Box::new(err)),
       }
     }
+  }
+
+  fn parse_json(data: Data) -> Result<Vec<Image>, Box<dyn Error>> {
+    let mut files: Vec<Image> = Vec::new();
+    let mut d = Vec::new();
+
+    data.stream_to(&mut d).expect("Unable to read");
+
+    match serde_json::from_str(&String::from_utf8(d).unwrap()[..]) {
+      Ok(json) => {
+        let array: Vec<String> = json;
+
+        for base64 in array {
+          match Self::from_base64(base64) {
+            Ok(image) => files.push(image),
+            Err(err) => return Err(Box::new(err)),
+          }
+        }
+      }
+      Err(err) => return Err(Box::new(err)),
+    }
+
+    Ok(files)
+  }
+
+  /**
+   * Parse multipart form data.
+   * Form can be contain binary data, URI or base64 or all together
+   */
+  fn parse_multipart(cont_type: &str, data: Data) -> Vec<Image> {
+    let idx = cont_type.find("boundary=").expect("The boundary not found");
+    let boundary = &cont_type[(idx + "boundary=".len())..];
+    let mut d = Vec::new();
+
+    data.stream_to(&mut d).expect("Unable to read");
+
+    let mut mp = Multipart::with_body(Cursor::new(d), boundary);
+    let mut files: Vec<Image> = Vec::new();
+
+    mp.foreach_entry(|mut entry| {
+      let mut image = Image {
+        name: "unknow_filename".to_string(),
+        buffer: vec![],
+      };
+
+      if entry.is_text() {
+        Self::parse_text_entry(&mut entry);
+      }
+
+      if let Some(filename) = entry.headers.filename {
+        if let Some(ext) = Path::new(&filename).extension() {
+          let name = utils::generate_filename(String::from(ext.to_str().unwrap()));
+
+          image.name = name;
+        } else {
+          image.name = filename;
+        }
+      }
+      if let Some(content_type) = entry.headers.content_type {
+        if content_type.to_string().starts_with("image/") {
+          entry.data.read_to_end(&mut image.buffer);
+        }
+      }
+
+      files.push(image);
+    })
+    .unwrap();
+
+    files
   }
 }
