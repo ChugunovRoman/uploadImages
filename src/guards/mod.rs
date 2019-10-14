@@ -35,25 +35,23 @@ impl FromDataSimple for DataImages {
 
   fn from_data(request: &Request, data: Data) -> data::Outcome<Self, Self::Error> {
     let mut files: Vec<Image> = Vec::new();
-    let mut ct: &str = "";
-
-    match request.headers().get_one("Content-Type") {
-      Some(t) => ct = t,
-      None => return Failure((Status::raw(400), format!("Invalid Content-Type: {}", ct))),
-    }
+    let ct = match request.headers().get_one("Content-Type") {
+      Some(t) => t,
+      None => return Failure((Status::raw(400), format!("Invalid Content-Type"))),
+    };
 
     if ct.starts_with("multipart/form-data") {
       // parse form data with binary, URI or base64 data
-      match Self::parse_multipart(ct, data) {
-        Ok(images) => files = images,
+      files = match Self::parse_multipart(ct, data) {
+        Ok(images) => images,
         Err(err) => {
           return Failure((Status::raw(400), format!("{:?}", err)));
         }
       };
     } else if ct.starts_with("application/json") {
       // parse JSON
-      match Self::parse_json(data) {
-        Ok(images) => files = images,
+      files = match Self::parse_json(data) {
+        Ok(images) => images,
         Err(err) => {
           return Failure((Status::raw(400), format!("{:?}", err)));
         }
@@ -73,35 +71,38 @@ impl DataImages {
   /**
    * Downloads file from passed URI
    */
-  fn from_uri(uri: &str) -> Result<Image, reqwest::Error> {
+  fn from_uri(uri: &str) -> Result<Image, Box<dyn Error>> {
     info!("download image from: {}", uri);
 
-    match reqwest::get(uri) {
-      Ok(mut response) => {
-        let mut image = Image {
-          name: "Unknown_file_name".to_string(),
-          buffer: vec![],
-        };
-        let mut buffer = Vec::new();
-        response.read_to_end(&mut buffer).unwrap();
-        let header: &HeaderMap = response.headers();
-        let cont_type = header.get("Content-Type").unwrap().to_str().unwrap();
-        let ext = utils::get_ext_by_type(cont_type);
+    let mut response = match reqwest::get(uri) {
+      Ok(response) => response,
+      Err(err) => return Err(Box::new(err)),
+    };
 
-        image.name = utils::generate_filename(ext);
-        image.buffer = buffer;
+    let mut image = Image {
+      name: "Unknown_file_name".to_string(),
+      buffer: vec![],
+    };
+    let mut buffer = Vec::new();
+    response.read_to_end(&mut buffer).unwrap();
+    let header: &HeaderMap = response.headers();
+    let cont_type = header.get("Content-Type").unwrap().to_str().unwrap();
+    let ext = match utils::get_ext_by_type(cont_type) {
+      Ok(e) => e,
+      Err(err) => return Err(Box::new(err)),
+    };
 
-        return Ok(image);
-      }
-      Err(err) => return Err(err),
-    }
+    image.name = utils::generate_filename(ext);
+    image.buffer = buffer;
+
+    return Ok(image);
   }
 
   /**
    * Parse base64
    * Accepts string with "data:image/png;base64," and without it
    */
-  fn from_base64(data: &str) -> Result<Image, base64::DecodeError> {
+  fn from_base64(data: &str) -> Result<Image, Box<dyn Error>> {
     let mut base64 = data;
     let mut have_metadata: bool = false;
     let mut file_type = "unknown_type";
@@ -119,21 +120,27 @@ impl DataImages {
       have_metadata = true;
     }
 
-    match base64::decode(&base64) {
-      Ok(buffer) => {
-        if !have_metadata {
-          file_type = utils::get_ext_from_bytes(&buffer[..4]);
-        }
+    let buffer = match base64::decode(&base64) {
+      Ok(buffer) => buffer,
+      Err(err) => return Err(Box::new(err)),
+    };
 
-        let ext = utils::get_ext_by_type(file_type);
-
-        image.name = utils::generate_filename(ext);
-        image.buffer = buffer;
-
-        return Ok(image);
-      }
-      Err(err) => return Err(err),
+    if !have_metadata {
+      file_type = match utils::get_ext_from_bytes(&buffer) {
+        Ok(ct) => ct,
+        Err(err) => return Err(Box::new(err)),
+      };
     }
+
+    let ext = match utils::get_ext_by_type(file_type) {
+      Ok(e) => e,
+      Err(err) => return Err(Box::new(err)),
+    };
+
+    image.name = utils::generate_filename(ext);
+    image.buffer = buffer;
+
+    return Ok(image);
   }
 
   /**
@@ -148,13 +155,13 @@ impl DataImages {
 
     if text.starts_with("http") {
       match Self::from_uri(text) {
-        Err(err) => return Err(Box::new(err)),
+        Err(err) => return Err(err),
         Ok(buffer) => return Ok(buffer),
       }
     } else {
       match Self::from_base64(text) {
         Ok(buffer) => return Ok(buffer),
-        Err(err) => return Err(Box::new(err)),
+        Err(err) => return Err(err),
       }
     }
   }
@@ -179,7 +186,7 @@ impl DataImages {
 
           match Self::from_base64(base64) {
             Ok(image) => files.push(image),
-            Err(err) => return Err(Box::new(err)),
+            Err(err) => return Err(err),
           }
         }
       }
@@ -206,41 +213,41 @@ impl DataImages {
     let mut files: Vec<Image> = Vec::new();
 
     loop {
-      match mp.read_entry() {
-        Ok(Some(mut entry)) => {
-          let mut image = Image {
-            name: "unknown_filename".to_string(),
-            buffer: vec![],
-          };
-
-          if entry.is_text() {
-            match Self::parse_text_entry(&mut entry) {
-              Ok(i) => image = i,
-              Err(err) => return Err(err),
-            };
-          }
-
-          if let Some(filename) = entry.headers.filename {
-            if let Some(ext) = Path::new(&filename).extension() {
-              let name = utils::generate_filename(ext.to_str().unwrap());
-
-              image.name = name;
-            } else {
-              image.name = filename;
-            }
-          }
-
-          if let Some(content_type) = entry.headers.content_type {
-            if content_type.to_string().starts_with("image/") {
-              entry.data.read_to_end(&mut image.buffer)?;
-            }
-          }
-
-          files.push(image);
-        }
+      let mut entry = match mp.read_entry() {
+        Ok(Some(entry)) => entry,
         Ok(None) => break,
         Err(err) => return Err(Box::new(err)),
+      };
+
+      let mut image = Image {
+        name: "unknown_filename".to_string(),
+        buffer: vec![],
+      };
+
+      if entry.is_text() {
+        match Self::parse_text_entry(&mut entry) {
+          Ok(i) => image = i,
+          Err(err) => return Err(err),
+        };
       }
+
+      if let Some(filename) = entry.headers.filename {
+        if let Some(ext) = Path::new(&filename).extension() {
+          let name = utils::generate_filename(ext.to_str().unwrap());
+
+          image.name = name;
+        } else {
+          image.name = filename;
+        }
+      }
+
+      if let Some(content_type) = entry.headers.content_type {
+        if content_type.to_string().starts_with("image/") {
+          entry.data.read_to_end(&mut image.buffer)?;
+        }
+      }
+
+      files.push(image);
     }
 
     Ok(files)
