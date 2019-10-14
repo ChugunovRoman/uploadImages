@@ -8,7 +8,7 @@ use uuid::Uuid;
 /**
  * Get file extension by content-type string
  */
-pub fn get_ext_by_type(cont_type: String) -> String {
+pub fn get_ext_by_type(cont_type: &str) -> &str {
   let mut t = "";
 
   match &cont_type[..] {
@@ -27,17 +27,17 @@ pub fn get_ext_by_type(cont_type: String) -> String {
         cont_type
       );
 
-      return String::from("");
+      return "";
     }
   }
 
-  String::from(t)
+  t
 }
 
 /**
  * Generate unique file name
  */
-pub fn generate_filename(ext: String) -> String {
+pub fn generate_filename(ext: &str) -> String {
   let uuid = Uuid::new_v4();
   let datetime = Utc::now().format("%Y-%m-%d_%H:%M:%S");
 
@@ -47,7 +47,7 @@ pub fn generate_filename(ext: String) -> String {
 /**
  * Get file content type from four first bytes
  */
-pub fn get_ext_from_bytes(bytes: &[u8]) -> String {
+pub fn get_ext_from_bytes(bytes: &[u8]) -> &str {
   let mut t = "";
 
   if bytes == [255, 216, 255, 224] || bytes == [255, 216, 255, 225] {
@@ -66,5 +66,5 @@ pub fn get_ext_from_bytes(bytes: &[u8]) -> String {
     t = "image/svg+xml";
   }
 
-  String::from(t)
+  t
 }
