@@ -12,14 +12,31 @@ extern crate multipart;
 
 use guards::DataImages;
 
-use rocket::{Data, Request};
-use std::{env, io};
+use rocket::http::Status;
+use rocket::{Request, Response};
+use std::io::Cursor;
 
 #[post("/api/v1/images/upload", data = "<data>")]
-fn index(data: DataImages) -> io::Result<String> {
+fn index<'a>(data: Result<DataImages, String>) -> Result<&'a str, Response<'static>> {
   // let path = env::temp_dir().join("uploaded_file");
 
-  Ok("Ok".to_string())
+  match data {
+    Ok(d) => {
+      for image in d.files {
+        println!("FILE: {}", image.name);
+      }
+
+      return Ok("Ok");
+    }
+    Err(err) => {
+      return Err(
+        Response::build()
+          .status(Status::raw(400))
+          .sized_body(Cursor::new(err))
+          .ok()?,
+      )
+    }
+  }
 }
 
 #[catch(404)]

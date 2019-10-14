@@ -2,7 +2,7 @@ extern crate base64;
 extern crate reqwest;
 
 use std::error::Error;
-use std::io::{Cursor, Read};
+use std::io::{self, Cursor, Read};
 use std::path::Path;
 use std::str;
 
@@ -17,9 +17,9 @@ use serde_json;
 use super::utils;
 
 #[derive(Debug)]
-struct Image {
-  name: String,
-  buffer: Vec<u8>,
+pub struct Image {
+  pub name: String,
+  pub buffer: Vec<u8>,
 }
 
 /**
@@ -27,7 +27,7 @@ struct Image {
  */
 #[derive(Debug)]
 pub struct DataImages {
-  files: Vec<Image>,
+  pub files: Vec<Image>,
 }
 
 impl FromDataSimple for DataImages {
@@ -170,6 +170,13 @@ impl DataImages {
         let array: Vec<&str> = json;
 
         for base64 in array {
+          if base64.len() <= 0 {
+            return Err(Box::new(io::Error::new(
+              io::ErrorKind::InvalidData,
+              "Invalid base64 string",
+            )));
+          }
+
           match Self::from_base64(base64) {
             Ok(image) => files.push(image),
             Err(err) => return Err(Box::new(err)),
