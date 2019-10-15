@@ -49,14 +49,30 @@ pub fn generate_filename(ext: &str) -> String {
 /**
  * Get file content type from four first bytes
  */
-pub fn get_ext_from_bytes(bytes: &[u8]) -> Result<&str, Error> {
+pub fn get_type_from_bytes(bytes: &[u8]) -> Result<&str, Error> {
   match guess_format(bytes).unwrap() {
     ImageFormat::PNG => Ok("image/png"),
     ImageFormat::JPEG => Ok("image/jpeg"),
-    ImageFormat::WEBP => Ok("image/webp"),
     ImageFormat::TIFF => Ok("image/tiff"),
     ImageFormat::BMP => Ok("image/vnd.wap.wbmp"),
     ImageFormat::ICO => Ok("image/vnd.microsoft.icon"),
+    _ => Err(Error::new(
+      ErrorKind::InvalidInput,
+      "Cannot determine type of image. Found unsupported image.",
+    )),
+  }
+}
+
+/**
+ * Get file content type from four first bytes
+ */
+pub fn get_ext_from_bytes(bytes: &[u8]) -> Result<&str, Error> {
+  match guess_format(bytes).unwrap() {
+    ImageFormat::PNG => Ok("png"),
+    ImageFormat::JPEG => Ok("jpeg"),
+    ImageFormat::TIFF => Ok("tif"),
+    ImageFormat::BMP => Ok("bmp"),
+    ImageFormat::ICO => Ok("ico"),
     _ => Err(Error::new(
       ErrorKind::InvalidInput,
       "Cannot determine type of image. Found unsupported image.",
