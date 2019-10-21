@@ -16,3 +16,9 @@ Rust server for upload images.
 * bmp
 * ico
 * tiff
+
+## Run
+You can run up the app via docker, just enter in terminal:
+```bash
+docker-compose up
+```

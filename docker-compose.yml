@@ -1,0 +1,11 @@
+version: "3"
+services:
+  server:
+    build: .
+    command: upload_images
+    environment:
+      - STOREDIR=/tmp
+    ports:
+      - 8000:8000
+    volumes:
+      - /tmp/uploaded_files:/tmp/uploaded_files
