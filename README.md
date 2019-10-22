@@ -1,6 +1,7 @@
 # Upload images server
 
 [![Build Status](https://travis-ci.org/ChugunovRoman/uploadImages.svg?branch=master)](https://travis-ci.org/ChugunovRoman/uploadImages)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/30055259fcc84fd0a2e7c7adf5f69c39)](https://www.codacy.com/manual/ChugunovRoman/uploadImages?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=ChugunovRoman/uploadImages&amp;utm_campaign=Badge_Grade)
 
 Rust server for upload images.
 
