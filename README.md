@@ -58,4 +58,4 @@ curl -X POST -H "Content-Type: multipart/form-data" -F 'files[]=https://cdn.pixa
 ```
 ## Author
 
-*  [Chugunov Roman](https://github.com/ChugunovRoman)
+*   [Chugunov Roman](https://github.com/ChugunovRoman)
