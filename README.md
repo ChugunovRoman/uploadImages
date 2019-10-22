@@ -25,3 +25,31 @@ You can run up the app via docker, just enter in terminal:
 ```bash
 docker-compose up
 ```
+After run, the server starts on localhost:8000
+
+## How to use
+
+**Send one binary file:**
+```bash
+curl -X POST -H "Content-Type: image/jpeg" --data-binary "@./tests/dataset/jpg.jpg" http://localhost:8000/api/v1/images/upload
+```
+
+**Send one file as base64:**
+```bash
+base64 ./tests/dataset/png.png | curl -X POST -H "Content-Type: text/plain" -d @- http://localhost:8000/api/v1/images/upload
+```
+
+**Send one url:**
+```bash
+curl -X POST -H "Content-Type: text/plain" -d "https://cdn.pixabay.com/photo/2018/01/14/23/12/nature-3082832_960_720.jpg" http://localhost:8000/api/v1/images/upload
+```
+
+**Send JSON (Array\<string\>) with base64:**
+```bash
+cat ./tests/dataset/json.json | curl -X POST -H "Content-Type: application/json" -d @- http://localhost:8000/api/v1/images/upload
+```
+
+**Send multipart/form-data, multiple files (binary, base64, or url or all together):**
+```bash
+curl -X POST -H "Content-Type: multipart/form-data" -F 'files[]=https://cdn.pixabay.com/photo/2018/01/14/23/12/nature-3082832_960_720.jpg' -F 'files[]=@./tests/dataset/png.png' -F "files[]=`cat ./tests/dataset/jpg.base64`"  http://localhost:8000/api/v1/images/upload
+```
