@@ -26,7 +26,7 @@ You can run up the app via docker, just enter in terminal:
 docker-compose up
 ```
 After run, the server starts on localhost:8000.
-The server have got one endpoint http://localhost:8000/api/v1/images/upload which accepts application/json, text/plain or multipart/form-data content type
+The server have got one endpoint <http://localhost:8000/api/v1/images/upload> which accepts application/json, text/plain or multipart/form-data content type
 
 All files store in /tmp directory. The app automatically create *uploaded_files* folder in the tmp directory and save all files into this folder. You can replace the tmp directory on own folder via STOREDIR environment variable. Just change the environment variable in the docker-compose.yml file
 
