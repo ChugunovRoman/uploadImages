@@ -56,3 +56,6 @@ cat ./tests/dataset/json.json | curl -X POST -H "Content-Type: application/json"
 ```bash
 curl -X POST -H "Content-Type: multipart/form-data" -F 'files[]=https://cdn.pixabay.com/photo/2018/01/14/23/12/nature-3082832_960_720.jpg' -F 'files[]=@./tests/dataset/png.png' -F "files[]=`cat ./tests/dataset/jpg.base64`"  http://localhost:8000/api/v1/images/upload
 ```
+## Author
+
+*  [Chugunov Roman](https://github.com/ChugunovRoman)
