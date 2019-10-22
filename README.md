@@ -1,5 +1,7 @@
 # Upload images server
 
+[![Build Status](https://travis-ci.org/ChugunovRoman/uploadImages.svg?branch=master)](https://travis-ci.org/ChugunovRoman/uploadImages)
+
 Rust server for upload images.
 
 ## Features:
