@@ -1,0 +1,7 @@
+target
+.git
+.gitignore
+.vscode
+.travis.yml
+.editorconfig
+Dockerfile
