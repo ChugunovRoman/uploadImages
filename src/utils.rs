@@ -1,7 +1,9 @@
 extern crate chrono;
 extern crate uuid;
 
+use std::env;
 use std::io::{Error, ErrorKind};
+use std::path::PathBuf;
 
 use chrono::prelude::*;
 use image::{guess_format, ImageFormat};
@@ -77,5 +79,12 @@ pub fn get_ext_from_bytes(bytes: &[u8]) -> Result<&str, Error> {
       ErrorKind::InvalidInput,
       "Cannot determine type of image. Found unsupported image.",
     )),
+  }
+}
+
+pub fn get_store_dir() -> PathBuf {
+  match env::var("STOREDIR") {
+    Ok(value) => PathBuf::from(value),
+    Err(_) => env::temp_dir(),
   }
 }

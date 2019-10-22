@@ -14,8 +14,8 @@ mod utils;
 use guards::DataImages;
 
 use log::error;
+use std::fs;
 use std::io::Cursor;
-use std::{env, fs};
 
 use image::{open, FilterType};
 use rocket::http::Status;
@@ -24,8 +24,8 @@ use rocket::{Request, Response};
 
 #[post("/api/v1/images/upload", data = "<data>")]
 fn index<'a>(data: Result<DataImages, String>) -> Result<&'a str, Response<'static>> {
-  let path = env::temp_dir().join("uploaded_files");
-  let thum_path = env::temp_dir().join("uploaded_files/thumbnails");
+  let path = utils::get_store_dir().join("uploaded_files");
+  let thum_path = utils::get_store_dir().join("uploaded_files/thumbnails");
 
   let d = match data {
     Ok(f) => f,
